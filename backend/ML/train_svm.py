@@ -1,3 +1,5 @@
+# backend/ml/train_svm.py
+
 import os
 import cv2
 import numpy as np
@@ -7,99 +9,103 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 import joblib
 
-def extract_features(image_path):
+def extract_hog_features(image):
     """
-    Load an image, preprocess it, and extract HOG features.
-    
-    Parameters:
-      image_path (str): Path to the image file.
-    
-    Returns:
-      features (ndarray): 1D numpy array of HOG features.
+    Resize grayscale image to 128×128 and extract HOG features.
     """
-    # Load image in grayscale mode
-    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    if image is None:
-        raise ValueError(f"Could not load image from {image_path}")
-    
-    # Resize image to a fixed size (128 x 128 pixels)
     image = cv2.resize(image, (128, 128))
-    
-    # Extract HOG features
-    features, _ = hog(image, 
-                      orientations=9, 
-                      pixels_per_cell=(8, 8),
-                      cells_per_block=(2, 2), 
-                      block_norm='L2-Hys',
-                      visualize=True, 
-                      transform_sqrt=True)
+    features, _ = hog(
+        image,
+        orientations=9,
+        pixels_per_cell=(8, 8),
+        cells_per_block=(2, 2),
+        block_norm='L2-Hys',
+        visualize=True,
+        transform_sqrt=True
+    )
     return features
 
-def load_dataset(genuine_dir, forged_dir):
+def load_signature_dataset(base_dir):
     """
-    Load the dataset from genuine and forged directories and extract features.
-    
-    Parameters:
-      genuine_dir (str): Directory containing genuine signature images.
-      forged_dir  (str): Directory containing forged signature images.
-      
-    Returns:
-      X (ndarray): Array of feature vectors.
-      y (ndarray): Array of labels (0 for genuine, 1 for forged).
+    Walks through base_dir/signatures_* folders, loads images prefixed
+    original_ (genuine) or forgeries_ (forged), and returns (X, y).
     """
-    features = []
-    labels = []
+    X, y = [], []
 
-    # Process genuine signatures (label as 0)
-    for filename in os.listdir(genuine_dir):
-        file_path = os.path.join(genuine_dir, filename)
-        try:
-            feat = extract_features(file_path)
-            features.append(feat)
-            labels.append(0)  # Genuine
-        except Exception as e:
-            print(f"Error processing {file_path}: {e}")
+    # List your signer subfolders: signatures_1, signatures_2, …
+    signer_folders = sorted([
+        d for d in os.listdir(base_dir)
+        if os.path.isdir(os.path.join(base_dir, d))
+    ])
+    print("Found signer folders:", signer_folders)
 
-    # Process forged signatures (label as 1)
-    for filename in os.listdir(forged_dir):
-        file_path = os.path.join(forged_dir, filename)
-        try:
-            feat = extract_features(file_path)
-            features.append(feat)
-            labels.append(1)  # Forged
-        except Exception as e:
-            print(f"Error processing {file_path}: {e}")
+    for folder in signer_folders:
+        folder_path = os.path.join(base_dir, folder)
+        for fname in os.listdir(folder_path):
+            if not fname.lower().endswith(('.png','.jpg','.jpeg','.bmp')):
+                continue
 
-    return np.array(features), np.array(labels)
+            img_path = os.path.join(folder_path, fname)
+            img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+            if img is None:
+                print(f"⚠️  Failed to read {img_path}")
+                continue
 
-def train_and_save_model():
-    """
-    Train an SVM model on the provided signature dataset and save the trained model.
-    """
-    # Directories where the images are stored
-    genuine_dir = 'data/genuine'
-    forged_dir  = 'data/forged'
-    
-    print("Loading dataset and extracting features...")
-    X, y = load_dataset(genuine_dir, forged_dir)
+            feats = extract_hog_features(img)
+            X.append(feats)
 
-    print("Splitting dataset into train and test sets...")
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            if fname.startswith("original_"):
+                y.append(0)
+            elif fname.startswith("forgeries_"):
+                y.append(1)
+            else:
+                # Unexpected prefix
+                print(f"⚠️  Skipping unrecognized file: {fname}")
 
-    print("Training the SVM classifier...")
-    # Create an SVM classifier with a linear kernel; probability=True enables probability estimates.
+    X = np.array(X)
+    y = np.array(y)
+
+    # Sanity checks
+    print(f"Total samples loaded: {len(y)}")
+    if len(y)>0:
+        print(f"HOG feature length: {X.shape[1]}")
+        binc = np.bincount(y)
+        print(f"Genuine(0): {binc[0] if len(binc)>0 else 0}, Forged(1): {binc[1] if len(binc)>1 else 0}")
+    else:
+        raise RuntimeError("No images loaded – check your 'signatures/' folder structure.")
+
+    return X, y
+
+def train_and_save():
+    # Compute the path to the 'signatures' folder at project root
+    script_dir     = os.path.dirname(__file__)            # .../backend/ml
+    backend_dir    = os.path.abspath(os.path.join(script_dir, ".."))  # .../backend
+    signatures_dir = os.path.join(backend_dir, "signatures")
+    print("Loading data from:", signatures_dir)
+
+    X, y = load_signature_dataset(signatures_dir)
+
+    # Split into train and test sets
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # Train a linear-kernel SVM
     clf = svm.SVC(kernel='linear', probability=True)
+    print("Training SVM...")
     clf.fit(X_train, y_train)
 
-    # Evaluate the classifier on the test set
+    # Evaluate on test set
     preds = clf.predict(X_test)
-    accuracy = accuracy_score(y_test, preds)
-    print("Accuracy on test data: {:.2f}%".format(accuracy * 100))
+    acc = accuracy_score(y_test, preds)
+    print(f"Test Accuracy: {acc*100:.2f}%")
 
-    # Save the trained model as svm_model.pkl
-    model_path = 'svm_model.pkl'
+    # Ensure `backend/models/` exists and save the model there
+    model_dir = os.path.join( backend_dir, 'models')
+    os.makedirs(model_dir, exist_ok=True)
+    model_path = os.path.join(model_dir, 'svm_model.pkl')
     joblib.dump(clf, model_path)
-    print(f"Trained model saved to {model_path}")
+    print("Model saved to:", model_path)
 
 if __name__ == "__main__":
-    train_and_save_model()
+    train_and_save()

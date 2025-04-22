@@ -1,47 +1,65 @@
 import React, { useState } from "react";
 
-const SignatureUpload = () => {
-  const [file, setFile] = useState(null);
-  const [result, setResult] = useState("");
+export default function SignatureUpload() {
+  const [files, setFiles] = useState([]);
+  const [response, setResponse] = useState(null);
+  const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
   const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+    setFiles(Array.from(e.target.files));
+    setResponse(null);
   };
 
-  const uploadSignature = async (e) => {
-    e.preventDefault();
-    if (!file) return;
-
+  const uploadAll = async () => {
+    if (files.length === 0) {
+      alert("Please select at least one file.");
+      return;
+    }
     const formData = new FormData();
-    formData.append("signature", file);
+    files.forEach((file) => formData.append("signatures", file));
 
     try {
-      const response = await fetch("http://localhost:5000/upload", {
+      const res = await fetch(`${API}/upload_originals`, {
         method: "POST",
         body: formData,
       });
-      const data = await response.json();
-      setResult(data.prediction);
-    } catch (error) {
-      console.error("Error:", error);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Upload failed");
+      setResponse(json);
+    } catch (err) {
+      setResponse({ error: err.message });
     }
   };
 
   return (
     <div>
-      <h2>Upload Signature</h2>
-      <form onSubmit={uploadSignature}>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          required
-        />
-        <button type="submit">Upload</button>
-      </form>
-      {result && <h3>Prediction: {result}</h3>}
+      <h2>Upload Original Signatures</h2>
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleFileChange}
+      />
+      <button onClick={uploadAll} style={{ marginLeft: 8 }}>
+        Upload All
+      </button>
+
+      {response && (
+        <div style={{ marginTop: 16 }}>
+          {response.error ? (
+            <p style={{ color: "red" }}>Error: {response.error}</p>
+          ) : (
+            <>
+              <p>{response.message}</p>
+              <ul>
+                {response.filenames.map((fn) => (
+                  <li key={fn}>{fn}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
-};
-
-export default SignatureUpload;
+}
