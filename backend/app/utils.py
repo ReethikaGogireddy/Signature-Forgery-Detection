@@ -56,14 +56,19 @@ def predict_signature(image_path):
     pred = svm_model.predict(feats)
     return "Genuine" if pred[0] == 0 else "Forged"
 
-def verify_signature(original_path, test_path, size=(128,128), threshold=0.7):
+def verify_signature(original_path, test_path):
     """
-    Compute SSIM between original and test, returning label and score.
+    Classify the test signature using the pre‐trained SVM.
+    Returns label and the genuine‐class probability as score.
     """
-    orig = cv2.imread(original_path, cv2.IMREAD_GRAYSCALE)
-    test = cv2.imread(test_path,    cv2.IMREAD_GRAYSCALE)
-    orig = cv2.resize(orig, size)
-    test = cv2.resize(test, size)
-    score = ssim(orig, test)
-    label = "Genuine" if score >= threshold else "Forged"
-    return label, float(score)
+    # We ignore original_path here, since the SVM is a standalone classifier.
+    # 1. Extract HOG features from test image:
+    feats = preprocess_image(test_path).reshape(1, -1)
+
+    # 2. Get probabilities [P(genuine), P(forged)]
+    probs = svm_model.predict_proba(feats)[0]
+    prob_genuine = probs[0]
+
+    # 3. Decide based on 0.5 threshold (or tune this)
+    label = "Genuine" if prob_genuine >= 0.5 else "Forged"
+    return label, float(prob_genuine)

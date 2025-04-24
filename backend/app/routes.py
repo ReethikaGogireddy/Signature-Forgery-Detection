@@ -3,6 +3,7 @@ import base64
 from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
 from app.utils import predict_signature  # loads svm_model.pkl and does HOG + SVM
+from app.utils import verify_signature  
 
 main = Blueprint('main', __name__)
 
@@ -58,9 +59,8 @@ def upload_online():
     prediction = predict_signature(save_path)
     return jsonify({'prediction': prediction})
 
-from app.utils import verify_signature  # make sure this import matches your project structure
 
-main = Blueprint('main', __name__)
+
 
 @main.route('/originals', methods=['GET'])
 def list_originals():
