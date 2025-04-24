@@ -1,5 +1,3 @@
-# Signature-Forgery-Detection
-
 # Signature Forgery Detection Web App
 
 A simple web app to upload genuine signatures, draw a test signature, and verify it using a trained SVM model.
@@ -58,5 +56,3 @@ A simple web app to upload genuine signatures, draw a test signature, and verify
 - **Model file**: `backend/models/svm_model.pkl`
 
 ---
-
-Enjoy testing signature verification!
