@@ -1,74 +1,59 @@
-# backend/app/utils.py
 import os
 import cv2
 import numpy as np
 from skimage.feature import hog
 import joblib
-from skimage.metrics import structural_similarity as ssim
 
-
-# Build an absolute path to models/svm_model.pkl
+# Path to your single‐image SVM
 MODEL_PATH = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__),  # backend/app
-        "..",                        # backend/
-        "models",                    # backend/models
-        "svm_model.pkl"
-    )
+    os.path.join(os.path.dirname(__file__),
+                 "..", "models", "svm_model.pkl")
 )
-
-# Now load it
 svm_model = joblib.load(MODEL_PATH)
 
-def preprocess_image(image_path):
-    """
-    Load an image from disk, convert to grayscale, resize, and extract HOG features.
+# Path to your pairwise SVM
+PAIRWISE_MODEL_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__),
+                 "..", "models", "svm_pairwise_model.pkl")
+)
+pairwise_svm = joblib.load(PAIRWISE_MODEL_PATH)
 
-    Parameters:
-      image_path (str): Path to the image file.
 
-    Returns:
-      features (np.ndarray): 1D array of HOG features.
-    """
-    # 1. Read the image in grayscale
-    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    if image is None:
-        raise FileNotFoundError(f"Could not load image at {image_path}")
-
-    # 2. Resize to 128×128 for consistency
-    image = cv2.resize(image, (128, 128))
-
-    # 3. Extract HOG features
-    features, _ = hog(
-        image,
-        orientations=9,
+def preprocess_image(path):
+    img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        raise FileNotFoundError(f"Could not load image at {path}")
+    img = cv2.resize(img, (128, 128))
+    feats, _ = hog(
+        img, orientations=9,
         pixels_per_cell=(8, 8),
         cells_per_block=(2, 2),
         block_norm='L2-Hys',
         visualize=True,
         transform_sqrt=True
     )
+    return feats
 
-    return features
 
 def predict_signature(image_path):
+    """
+    Classify a single test signature via the standalone SVM.
+    """
     feats = preprocess_image(image_path).reshape(1, -1)
-    pred = svm_model.predict(feats)
-    return "Genuine" if pred[0] == 0 else "Forged"
+    pred = svm_model.predict(feats)[0]       # 0=genuine, 1=forged
+    return "Genuine" if pred == 0 else "Forged"
 
-def verify_signature(original_path, test_path):
+
+def verify_signature_pairwise(original_path, test_path):
     """
-    Classify the test signature using the pre‐trained SVM.
-    Returns label and the genuine‐class probability as score.
+    Compare an original & test via the pairwise‐trained SVM.
+    Returns (label, prob_genuine).
     """
-    # We ignore original_path here, since the SVM is a standalone classifier.
-    # 1. Extract HOG features from test image:
-    feats = preprocess_image(test_path).reshape(1, -1)
+    f1 = preprocess_image(original_path)
+    f2 = preprocess_image(test_path)
+    diff = np.abs(f1 - f2).reshape(1, -1)
 
-    # 2. Get probabilities [P(genuine), P(forged)]
-    probs = svm_model.predict_proba(feats)[0]
-    prob_genuine = probs[0]
-
-    # 3. Decide based on 0.5 threshold (or tune this)
-    label = "Genuine" if prob_genuine >= 0.5 else "Forged"
-    return label, float(prob_genuine)
+    pred = pairwise_svm.predict(diff)[0]            # 0=genuine, 1=forged
+    prob = pairwise_svm.predict_proba(diff)[0][0]   # P(genuine)
+    label = "Genuine" if pred == 0 else "Forged"
+    return label, float(prob)

@@ -1,0 +1,17 @@
+# misc
+frontend/DS_Store
+frontend/env.local
+frontend/env.development.local
+frontendenv.test.local
+frontendenv.production.local
+
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+backend/backend/data
+backend/ml
+backend/signatures
+backend/models/svm_pairwise_model.pkl
+backend/models/*.pkl
+backend/models/svm_model.pkl
