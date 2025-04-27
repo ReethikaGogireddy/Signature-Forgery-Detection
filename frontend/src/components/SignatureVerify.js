@@ -35,10 +35,70 @@ export default function SignatureVerify() {
     setMessage(`Result: ${json.result} (score: ${json.score.toFixed(2)})`);
   };
 
+  // Inline styles
+  const container = {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: "100vh",
+    backgroundColor: "#f0f0f0",
+    padding: 20,
+  };
+  const heading = {
+    fontSize: 24,
+    color: "#333",
+    margin: "8px 0",
+  };
+  const selectStyle = {
+    width: 260,
+    padding: 8,
+    fontSize: 16,
+    border: "2px solid #ccc",
+    borderRadius: 4,
+    backgroundColor: "#fff",
+    marginBottom: 24,
+  };
+  const canvasWrapper = {
+    border: "2px dashed #ccc",
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    padding: 12,
+    marginBottom: 16,
+  };
+  const canvasStyle = {
+    borderRadius: 4,
+    backgroundColor: "#fff",
+  };
+  const buttons = {
+    display: "flex",
+    gap: 12,
+    marginTop: 10,
+  };
+  const buttonStyle = {
+    padding: "10px 20px",
+    fontSize: 16,
+    border: "none",
+    borderRadius: 4,
+    backgroundColor: "#007bff",
+    color: "#fff",
+    cursor: "pointer",
+  };
+  const messageStyle = {
+    marginTop: 24,
+    fontSize: 18,
+    color: "#333",
+    textAlign: "center",
+  };
+
   return (
-    <div>
-      <h2>1. Select Original</h2>
-      <select value={selected} onChange={(e) => setSelected(e.target.value)}>
+    <div style={container}>
+      <h2 style={heading}>1. Select Original</h2>
+      <select
+        value={selected}
+        onChange={(e) => setSelected(e.target.value)}
+        style={selectStyle}
+      >
         <option value="">-- pick one --</option>
         {originals.map((fn) => (
           <option key={fn} value={fn}>
@@ -47,18 +107,22 @@ export default function SignatureVerify() {
         ))}
       </select>
 
-      <h2>2. Draw Test Signature</h2>
-      <SignatureCanvas
-        ref={sigCanvas}
-        penColor="black"
-        canvasProps={{
-          width: 400,
-          height: 150,
-          style: { border: "1px solid #000" },
-        }}
-      />
-      <div style={{ marginTop: 10 }}>
+      <h2 style={heading}>2. Draw Test Signature</h2>
+      <div style={canvasWrapper}>
+        <SignatureCanvas
+          ref={sigCanvas}
+          penColor="black"
+          canvasProps={{
+            width: 400,
+            height: 150,
+            style: canvasStyle,
+          }}
+        />
+      </div>
+
+      <div style={buttons}>
         <button
+          style={buttonStyle}
           onClick={() => {
             sigCanvas.current.clear();
             setMessage("");
@@ -66,12 +130,12 @@ export default function SignatureVerify() {
         >
           Clear
         </button>
-        <button onClick={handleVerify} style={{ marginLeft: 8 }}>
+        <button style={buttonStyle} onClick={handleVerify}>
           Verify
         </button>
       </div>
 
-      {message && <div style={{ marginTop: 20 }}>{message}</div>}
+      {message && <div style={messageStyle}>{message}</div>}
     </div>
   );
 }
