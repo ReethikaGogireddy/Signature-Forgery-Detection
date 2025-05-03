@@ -3,7 +3,10 @@ from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
 from app.utils import (
     predict_signature,
-    verify_signature_pairwise
+    verify_signature_pairwise,
+    verify_rf,
+    verify_logistic,
+    # verify_cnn
 )
 
 main = Blueprint('main', __name__)
@@ -85,5 +88,15 @@ def verify():
         fp.write(img_bytes)
 
     # Pairwise verify
-    label, score = verify_signature_pairwise(orig_path, test_path)
-    return jsonify({'result': label, 'score': score}), 200
+    #label, score = verify_signature_pairwise(orig_path, test_path)
+    model = data.get('model', 'svm')  # 'svm', 'rf', 'logistic', 'cnn'
+    if model == 'rf':
+       result, score = verify_rf(orig_path, test_path)
+    elif model == 'logistic':
+       result, score = verify_logistic(orig_path, test_path)
+    # elif model == 'cnn':
+    #    result, score = verify_cnn(orig_path, test_path)
+    else:
+       result, score = verify_signature_pairwise(orig_path, test_path)
+
+    return jsonify({'result': result, 'score': score}), 200
