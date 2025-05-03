@@ -8,7 +8,7 @@ from app.utils import (
 
 main = Blueprint('main', __name__)
 
-@main.route('/upload_originals', methods=['POST'])
+@main.route('/upload_originals', methods=['POST']) #file uploading using flask
 def upload_originals():
     files = request.files.getlist('signatures')
     if not files:
@@ -28,7 +28,7 @@ def upload_originals():
 
     return jsonify({'message': f'Saved {len(saved)} files.', 'filenames': saved}), 200
 
-@main.route('/upload_online', methods=['POST'])
+@main.route('/upload_online', methods=['POST']) #signature drawing 
 def upload_online():
     data = request.get_json() or {}
     img_b64 = data.get('signature_data')
