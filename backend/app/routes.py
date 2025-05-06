@@ -6,7 +6,7 @@ from app.utils import (
     verify_signature_pairwise,
     verify_rf,
     verify_logistic,
-    # verify_cnn
+    verify_cnn
 )
 
 main = Blueprint('main', __name__)
@@ -94,9 +94,31 @@ def verify():
        result, score = verify_rf(orig_path, test_path)
     elif model == 'logistic':
        result, score = verify_logistic(orig_path, test_path)
-    # elif model == 'cnn':
-    #    result, score = verify_cnn(orig_path, test_path)
+    elif model == 'cnn':
+       result, score = verify_cnn(orig_path, test_path)
     else:
        result, score = verify_signature_pairwise(orig_path, test_path)
 
     return jsonify({'result': result, 'score': score}), 200
+
+
+@main.route('/classify_image', methods=['POST'])
+def classify_image():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    f = request.files['file']
+    if f.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    save_dir = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), '..', 'data', 'tests'))
+    os.makedirs(save_dir, exist_ok=True)
+    filename = secure_filename(f.filename)
+    path = os.path.join(save_dir, filename)
+    f.save(path)
+
+    try:
+        result = predict_signature(path)
+        return jsonify({'result': result}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

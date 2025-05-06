@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from skimage.feature import hog
 import joblib
-# from tensorflow.keras.models import load_model
+from tensorflow.keras.models import load_model
 
 
 # Path to your single‐image SVM
@@ -22,7 +22,7 @@ pairwise_svm = joblib.load(PAIRWISE_MODEL_PATH)
 
 RF_MODEL = joblib.load(os.path.join(os.path.dirname(__file__),"..","models","rf_pairwise_model.pkl"))
 LOG_MODEL = joblib.load(os.path.join(os.path.dirname(__file__),"..","models","logistic_model.pkl"))
-# CNN_MODEL = load_model(os.path.join(os.path.dirname(__file__),"..","models","siamese_cnn.h5"))
+CNN_MODEL = load_model(os.path.join(os.path.dirname(__file__),"..","models","siamese_cnn.h5"))
 
 
 
@@ -80,11 +80,4 @@ def verify_logistic(orig, test):
     return lbl, float(p)
 
 
-# def verify_cnn(orig, test):
-#     import cv2
-#     # load & preprocess raw images
-#     im1 = cv2.resize(cv2.imread(orig,0),(128,128))/255.; im1 = im1.reshape(1,128,128,1)
-#     im2 = cv2.resize(cv2.imread(test,0),(128,128))/255.; im2 = im2.reshape(1,128,128,1)
-#     p = float(CNN_MODEL.predict([im1,im2])[0][0])
-#     lbl = "Genuine" if p>=0.5 else "Forged"
-#     return lbl, p
+

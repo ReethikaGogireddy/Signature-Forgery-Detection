@@ -14,4 +14,6 @@ backend/ml
 backend/signatures
 backend/models/svm_pairwise_model.pkl
 backend/models/*.pkl
+backend/models/*.h5
 backend/models/svm_model.pkl
+backend/app/__pycache__
