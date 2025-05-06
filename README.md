@@ -2,7 +2,7 @@
 
 A simple web app to upload genuine signatures, draw a test signature, and verify it using a trained SVM model.
 
----
+
 
 ## Overview
 
@@ -11,14 +11,13 @@ A simple web app to upload genuine signatures, draw a test signature, and verify
 3. **Draw Test Signature**: Sign on the canvas in the browser.
 4. **Verify**: The app returns “Genuine” or “Forged” with a confidence score.
 
----
 
 ## Tech Stack
 
 - **Backend**: Flask (Python), scikit-learn, OpenCV, joblib
 - **Frontend**: React, react-signature-canvas
 
----
+
 
 ## Setup
 
@@ -38,7 +37,7 @@ A simple web app to upload genuine signatures, draw a test signature, and verify
    npm start                # opens http://localhost:3000
    ```
 
----
+
 
 ## Usage
 
@@ -47,7 +46,7 @@ A simple web app to upload genuine signatures, draw a test signature, and verify
 3. **Draw** a new signature on the canvas.
 4. **Verify** to see if it’s Genuine or Forged.
 
----
+
 
 ## File Locations
 
@@ -55,4 +54,4 @@ A simple web app to upload genuine signatures, draw a test signature, and verify
 - **Test signatures**: `backend/data/tests/`
 - **Model file**: `backend/models/svm_model.pkl`
 
----
+
